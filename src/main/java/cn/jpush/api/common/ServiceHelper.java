@@ -1,7 +1,7 @@
 package cn.jpush.api.common;
 
-import cn.jiguang.common.utils.Base64;
-import cn.jiguang.common.utils.StringUtils;
+import cn.jpush.api.common.utils.Base64;
+import cn.jpush.api.common.utils.StringUtils;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonPrimitive;
 import org.slf4j.Logger;

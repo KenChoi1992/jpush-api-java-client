@@ -177,7 +177,7 @@ public class NettyHttp2Client implements IHttpClient {
             responseHandler.put(streamId, channel.writeAndFlush(request), channel.newPromise());
             streamId += 2;
         }
-        responseHandler.awaitResponses(5, TimeUnit.SECONDS);
+        responseHandler.awaitResponses(15, TimeUnit.SECONDS);
         System.out.println("Finished HTTP/2 request(s)");
 
         // Wait until the connection is closed.
@@ -197,14 +197,6 @@ public class NettyHttp2Client implements IHttpClient {
     }
 
     public ResponseWrapper sendGet(String url, String content) throws APIConnectionException, APIRequestException {
-//        ResponseWrapper wrapper = new ResponseWrapper();
-//        try {
-//            initNettyHttp2Client(url, "GET", content);
-//            handleResponse(wrapper);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        return wrapper;
         return null;
     }
 
@@ -215,14 +207,6 @@ public class NettyHttp2Client implements IHttpClient {
 
     @Override
     public ResponseWrapper sendPost(String url, String content) throws APIConnectionException, APIRequestException {
-//        ResponseWrapper wrapper = new ResponseWrapper();
-//        try {
-//            initNettyHttp2Client(url.substring(8), "POST", content);
-//            handleResponse(wrapper);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        return wrapper;
         return null;
     }
 

@@ -1,7 +1,7 @@
 package cn.jpush.api.common.connection;
 
-import cn.jiguang.common.ServiceHelper;
-import cn.jiguang.common.utils.Preconditions;
+import cn.jpush.api.common.ServiceHelper;
+import cn.jpush.api.common.utils.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

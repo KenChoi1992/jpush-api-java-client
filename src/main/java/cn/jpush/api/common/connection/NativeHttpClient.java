@@ -89,8 +89,23 @@ public class NativeHttpClient implements IHttpClient {
 			throws APIConnectionException, APIRequestException {
 		return doRequest(url, content, RequestMethod.PUT);
 	}
-        
-    public ResponseWrapper doRequest(String url, String content,
+
+	@Override
+	public ResponseWrapper sendPut(String host, String url, String content) throws APIConnectionException, APIRequestException {
+		return null;
+	}
+
+	@Override
+	public ResponseWrapper sendPost(String host, String url, String content) throws APIConnectionException, APIRequestException {
+		return null;
+	}
+
+	@Override
+	public ResponseWrapper sendDelete(String host, String url, String content) throws APIConnectionException, APIRequestException {
+		return null;
+	}
+
+	public ResponseWrapper doRequest(String url, String content,
                                      RequestMethod method) throws APIConnectionException, APIRequestException {
         ResponseWrapper response = null;
         for (int retryTimes = 0; ; retryTimes++) {

@@ -8,13 +8,13 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashSet;
 import java.util.Set;
 
+import cn.jpush.api.common.resp.APIConnectionException;
+import cn.jpush.api.common.resp.APIRequestException;
+import cn.jpush.api.common.resp.DefaultResult;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import cn.jiguang.common.resp.APIConnectionException;
-import cn.jiguang.common.resp.APIRequestException;
-import cn.jiguang.common.resp.DefaultResult;
 import cn.jpush.api.JPushClient;
 import cn.jpush.api.SlowTests;
 import cn.jpush.api.push.PushResult;

@@ -8,6 +8,9 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.net.URL;
 
+import cn.jpush.api.common.connection.IHttpClient;
+import cn.jpush.api.common.resp.APIConnectionException;
+import cn.jpush.api.common.resp.APIRequestException;
 import org.junit.After;
 import org.junit.Test;
 
@@ -17,9 +20,6 @@ import com.squareup.okhttp.mockwebserver.MockResponse;
 import com.squareup.okhttp.mockwebserver.MockWebServer;
 import com.squareup.okhttp.mockwebserver.SocketPolicy;
 
-import cn.jiguang.common.connection.IHttpClient;
-import cn.jiguang.common.resp.APIConnectionException;
-import cn.jiguang.common.resp.APIRequestException;
 import cn.jpush.api.push.PushClient;
 import cn.jpush.api.push.model.PushPayload;
 

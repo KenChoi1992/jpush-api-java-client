@@ -8,13 +8,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import cn.jpush.api.common.resp.APIConnectionException;
+import cn.jpush.api.common.resp.APIRequestException;
+import cn.jpush.api.common.resp.BooleanResult;
+import cn.jpush.api.common.resp.DefaultResult;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import cn.jiguang.common.resp.APIConnectionException;
-import cn.jiguang.common.resp.APIRequestException;
-import cn.jiguang.common.resp.BooleanResult;
-import cn.jiguang.common.resp.DefaultResult;
 import cn.jpush.api.BaseTest;
 import cn.jpush.api.JUnitOrderedRunner;
 import cn.jpush.api.TestOrder;
