@@ -2,6 +2,7 @@ package cn.jpush.api.push;
 
 import cn.jpush.api.common.ClientConfig;
 import cn.jpush.api.common.ServiceHelper;
+import cn.jpush.api.common.connection.Http2Request;
 import cn.jpush.api.common.connection.HttpProxy;
 import cn.jpush.api.common.connection.NativeHttpClient;
 import cn.jpush.api.common.connection.NettyHttp2Client;
@@ -14,6 +15,11 @@ import cn.jpush.api.common.utils.StringUtils;
 import cn.jpush.api.push.model.PushPayload;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpMethod;
+
+import java.util.LinkedList;
+import java.util.Queue;
 
 /**
  * Entrance for sending Push.
@@ -85,7 +91,7 @@ public class PushClient {
         this._timeToLive = (Long) conf.get(ClientConfig.TIME_TO_LIVE);
 
         String authCode = ServiceHelper.getBasicAuthorization(appKey, masterSecret);
-        this._httpClient = new NettyHttp2Client(authCode, proxy, conf);
+        this._httpClient = new NettyHttp2Client(authCode, proxy, conf, _baseUrl);
 	}
 
     public PushClient(String masterSecret, String appKey, HttpProxy proxy, ClientConfig conf) {
@@ -99,7 +105,7 @@ public class PushClient {
         this._timeToLive = (Long) conf.get(ClientConfig.TIME_TO_LIVE);
 
         String authCode = ServiceHelper.getBasicAuthorization(appKey, masterSecret);
-        this._httpClient = new NettyHttp2Client(authCode, proxy, conf);
+        this._httpClient = new NettyHttp2Client(authCode, proxy, conf, _baseUrl);
 
     }
 

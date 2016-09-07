@@ -14,6 +14,7 @@
  */
 package cn.jpush.api.common.connection;
 
+import cn.jpush.api.common.resp.ResponseWrapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -41,6 +42,7 @@ public class HttpResponseHandler extends SimpleChannelInboundHandler<FullHttpRes
 
     private SortedMap<Integer, Entry<ChannelFuture, ChannelPromise>> streamidPromiseMap;
     private NettyHttp2Client mNettyHttp2Client;
+    private NettyHttp2Client.BaseCallback mCallback;
 
     public HttpResponseHandler(NettyHttp2Client nettyHttp2Client) {
         mNettyHttp2Client = nettyHttp2Client;
@@ -122,6 +124,14 @@ public class HttpResponseHandler extends SimpleChannelInboundHandler<FullHttpRes
             }
 
             mNettyHttp2Client.setResponse(streamId + ctx.channel().id().asShortText(), list);
+            if (null != mCallback) {
+                ResponseWrapper wrapper = new ResponseWrapper();
+                wrapper.responseCode = Integer.valueOf(list.get(0));
+                if (list.size() > 1) {
+                    wrapper.responseContent = list.get(1);
+                }
+                mCallback.onSucceed(wrapper);
+            }
 
             entry.getValue().setSuccess();
             if (msg instanceof HttpContent) {
@@ -137,4 +147,9 @@ public class HttpResponseHandler extends SimpleChannelInboundHandler<FullHttpRes
 
         }
     }
+
+    public void setCallback(NettyHttp2Client.BaseCallback callback) {
+        mCallback = callback;
+    }
+
 }

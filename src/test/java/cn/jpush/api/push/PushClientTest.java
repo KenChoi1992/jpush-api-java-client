@@ -4,15 +4,25 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import cn.jpush.api.JPushClient;
+import cn.jpush.api.common.ClientConfig;
+import cn.jpush.api.common.ServiceHelper;
+import cn.jpush.api.common.connection.Http2Request;
 import cn.jpush.api.common.connection.HttpProxy;
+import cn.jpush.api.common.connection.NettyHttp2Client;
 import cn.jpush.api.common.resp.APIConnectionException;
 import cn.jpush.api.common.resp.APIRequestException;
+import cn.jpush.api.common.resp.BaseResult;
+import cn.jpush.api.common.resp.ResponseWrapper;
+import io.netty.handler.codec.http.HttpMethod;
 import org.junit.Test;
 
 import cn.jpush.api.BaseTest;
 import cn.jpush.api.push.model.PushPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class PushClientTest extends BaseTest {
 
@@ -40,6 +50,31 @@ public class PushClientTest extends BaseTest {
             LOG.info("Error Code: " + e.getErrorCode());
             LOG.info("Error Message: " + e.getErrorMessage());
             LOG.info("Msg ID: " + e.getMsgId());
+        }
+    }
+
+    @Test
+    public void testSendPushes() {
+        ClientConfig config = ClientConfig.getInstance();
+        String host = (String) config.get(ClientConfig.PUSH_HOST_NAME);
+        NettyHttp2Client client = new NettyHttp2Client(ServiceHelper.getBasicAuthorization(APP_KEY, MASTER_SECRET),
+                null, config, host.substring(8));
+        Queue<Http2Request> queue = new LinkedList<Http2Request>();
+        String url = (String) config.get(ClientConfig.PUSH_PATH);
+        PushPayload payload = buildPushObject_all_all_alert();
+        for (int i=0; i<10; i++) {
+            queue.offer(new Http2Request(url, payload.toString()));
+        }
+        try {
+            client.setRequestQueue(HttpMethod.POST, queue).execute(new NettyHttp2Client.BaseCallback() {
+                @Override
+                public void onSucceed(ResponseWrapper wrapper) {
+                    PushResult result = BaseResult.fromResponse(wrapper, PushResult.class);
+                    LOG.info("Got result - " + result);
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

@@ -3,6 +3,7 @@ package cn.jpush.api.common.connection;
 import cn.jpush.api.common.ClientConfig;
 import cn.jpush.api.common.resp.APIConnectionException;
 import cn.jpush.api.common.resp.APIRequestException;
+import cn.jpush.api.common.resp.BaseResult;
 import cn.jpush.api.common.resp.ResponseWrapper;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
@@ -24,9 +25,7 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLException;
 import java.net.Authenticator;
 import java.text.MessageFormat;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static io.netty.handler.codec.http.HttpMethod.*;
@@ -46,6 +45,10 @@ public class NettyHttp2Client implements IHttpClient {
     static final int PORT = 443;
     private String _authCode;
     private HttpProxy _proxy;
+    private String _host;
+    private Channel _channel;
+    private Queue<FullHttpRequest> _requestQueue = new LinkedList<FullHttpRequest>();
+    private final int MAX_QUEUE_SIZE = 1000;
     Bootstrap b = new Bootstrap();
     Http2ClientInitializer initializer;
     public Map<String, List<String>> responseMap = new HashMap<String, List<String>>();
@@ -53,11 +56,12 @@ public class NettyHttp2Client implements IHttpClient {
     private String mChannelId;
     private String mKey;
 
-    public NettyHttp2Client(String authCode, HttpProxy proxy, ClientConfig config) {
+    public NettyHttp2Client(String authCode, HttpProxy proxy, ClientConfig config, String host) {
         _maxRetryTimes = config.getMaxRetryTimes();
         _connectionTimeout = config.getConnectionTimeout();
         _readTimeout = config.getReadTimeout();
         _sslVer = config.getSSLVersion();
+        _host = host.substring(8);
 
         _authCode = authCode;
         _proxy = proxy;
@@ -103,27 +107,78 @@ public class NettyHttp2Client implements IHttpClient {
         b.group(workerGroup);
         b.channel(NioSocketChannel.class);
         b.option(ChannelOption.SO_KEEPALIVE, true);
+        b.remoteAddress(_host, PORT);
+        b.handler(initializer);
+        // Start the client.
+        _channel = b.connect().syncUninterruptibly().channel();
+        mChannelId = _channel.id().asShortText();
+        LOG.debug("ShortText channel id: " + mChannelId);
+        LOG.debug("Connected to [" + host + ':' + PORT + ']');
 
         mNettyHttp2Client = this;
     }
 
-    public void initNettyHttp2Client(String host, String url, RequestMethod method, String content) throws Exception {
+    public NettyHttp2Client setRequestQueue(HttpMethod method, Queue<Http2Request> queue) throws Exception {
+        if (queue.size() > MAX_QUEUE_SIZE) {
+            throw new IllegalArgumentException("Queue size is lager than MAX_QUEUE_SIZE !");
+        }
+        Http2SettingsHandler http2SettingsHandler = initializer.settingsHandler();
+        http2SettingsHandler.awaitSettings(5, TimeUnit.SECONDS);
 
-        b.remoteAddress(host, PORT);
-        b.handler(initializer);
-        // Start the client.
-        Channel channel = b.connect().syncUninterruptibly().channel();
-        mChannelId = channel.id().asShortText();
-        LOG.debug("ShortText channel id: " + mChannelId);
-        LOG.debug("Connected to [" + host + ':' + PORT + ']');
+        HttpScheme scheme = SSL ? HttpScheme.HTTPS : HttpScheme.HTTP;
+        AsciiString hostName = new AsciiString(_host + ':' + PORT);
+        System.err.println("Sending request(s)...");
+        FullHttpRequest request;
+        for (Http2Request http2Request : queue) {
+            String content = http2Request.getContent();
+            if (null != content) {
+                request = new DefaultFullHttpRequest(HTTP_1_1, method, http2Request.getUrl(),
+                        Unpooled.copiedBuffer(content.getBytes(CharsetUtil.UTF_8)));
+                byte[] data = content.getBytes(CHARSET);
+                request.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(data.length));
+            } else {
+                request = new DefaultFullHttpRequest(HTTP_1_1, method, http2Request.getUrl());
+            }
 
+            request.headers().add(HttpHeaderNames.HOST, hostName);
+            request.headers().add(HttpHeaderNames.AUTHORIZATION, _authCode);
+            request.headers().add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), scheme.name());
+            request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+            request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.DEFLATE);
+            _requestQueue.offer(request);
+        }
+        return this;
+    }
+
+    public void execute(BaseCallback callback) {
+        if (_requestQueue.size() != 0) {
+            if (null == _channel) {
+                _channel = b.connect().syncUninterruptibly().channel();
+                mChannelId = _channel.id().asShortText();
+            }
+            int streamId = 3;
+            HttpResponseHandler responseHandler = initializer.responseHandler(callback);
+            for (FullHttpRequest request : _requestQueue) {
+                responseHandler.put(streamId, _channel.writeAndFlush(request), _channel.newPromise());
+                streamId += 2;
+                _requestQueue.poll();
+            }
+            responseHandler.awaitResponses(15, TimeUnit.SECONDS);
+            System.out.println("Finished HTTP/2 request(s)");
+
+            // Wait until the connection is closed.
+            _channel.close().syncUninterruptibly();
+        }
+    }
+
+    public void initNettyHttp2Client(String url, RequestMethod method, String content) throws Exception {
         // Wait for the HTTP/2 upgrade to occur.
         Http2SettingsHandler http2SettingsHandler = initializer.settingsHandler();
         http2SettingsHandler.awaitSettings(5, TimeUnit.SECONDS);
 
-        HttpResponseHandler responseHandler = initializer.responseHandler();
+        HttpResponseHandler responseHandler = initializer.responseHandler(null);
         HttpScheme scheme = SSL ? HttpScheme.HTTPS : HttpScheme.HTTP;
-        AsciiString hostName = new AsciiString(host + ':' + PORT);
+        AsciiString hostName = new AsciiString(_host + ':' + PORT);
         System.err.println("Sending request(s)...");
         int streamId = 3;
         FullHttpRequest request;
@@ -139,7 +194,7 @@ public class NettyHttp2Client implements IHttpClient {
                 byte[] data = content.getBytes(CHARSET);
                 request.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(data.length));
             }
-            responseHandler.put(streamId, channel.writeAndFlush(request), channel.newPromise());
+            responseHandler.put(streamId, _channel.writeAndFlush(request), _channel.newPromise());
             streamId += 2;
         } else if (method == RequestMethod.POST) {
             // Create a simple POST request with a body.
@@ -150,7 +205,7 @@ public class NettyHttp2Client implements IHttpClient {
             request.headers().add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), scheme.name());
             request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
             request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.DEFLATE);
-            responseHandler.put(streamId, channel.writeAndFlush(request), channel.newPromise());
+            responseHandler.put(streamId, _channel.writeAndFlush(request), _channel.newPromise());
             streamId += 2;
         } else if (method == RequestMethod.PUT) {
             request = new DefaultFullHttpRequest(HTTP_1_1, PUT, url,
@@ -160,7 +215,7 @@ public class NettyHttp2Client implements IHttpClient {
             request.headers().add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), scheme.name());
             request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
             request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.DEFLATE);
-            responseHandler.put(streamId, channel.writeAndFlush(request), channel.newPromise());
+            responseHandler.put(streamId, _channel.writeAndFlush(request), _channel.newPromise());
             streamId += 2;
         } else if (method == RequestMethod.DELETE) {
             if (null != content) {
@@ -174,14 +229,14 @@ public class NettyHttp2Client implements IHttpClient {
             request.headers().add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), scheme.name());
             request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
             request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.DEFLATE);
-            responseHandler.put(streamId, channel.writeAndFlush(request), channel.newPromise());
+            responseHandler.put(streamId, _channel.writeAndFlush(request), _channel.newPromise());
             streamId += 2;
         }
         responseHandler.awaitResponses(15, TimeUnit.SECONDS);
         System.out.println("Finished HTTP/2 request(s)");
 
         // Wait until the connection is closed.
-        channel.close().syncUninterruptibly();
+        _channel.close().syncUninterruptibly();
 
 
     }
@@ -219,7 +274,7 @@ public class NettyHttp2Client implements IHttpClient {
     public ResponseWrapper sendPut(String host, String url, String content) throws APIConnectionException, APIRequestException {
         ResponseWrapper wrapper = new ResponseWrapper();
         try {
-            initNettyHttp2Client(host.substring(8),url, RequestMethod.PUT, content);
+            initNettyHttp2Client(url, RequestMethod.PUT, content);
             handleResponse(wrapper);
         } catch (Exception e) {
             e.printStackTrace();
@@ -231,7 +286,7 @@ public class NettyHttp2Client implements IHttpClient {
     public ResponseWrapper sendPost(String host, String url, String content) throws APIConnectionException, APIRequestException {
         ResponseWrapper wrapper = new ResponseWrapper();
         try {
-            initNettyHttp2Client(host.substring(8),url, RequestMethod.POST, content);
+            initNettyHttp2Client(url, RequestMethod.POST, content);
             handleResponse(wrapper);
         } catch (Exception e) {
             e.printStackTrace();
@@ -243,7 +298,7 @@ public class NettyHttp2Client implements IHttpClient {
     public ResponseWrapper sendDelete(String host, String url, String content) throws APIConnectionException, APIRequestException {
         ResponseWrapper wrapper = new ResponseWrapper();
         try {
-            initNettyHttp2Client(host.substring(8), url, RequestMethod.DELETE, content);
+            initNettyHttp2Client(url, RequestMethod.DELETE, content);
             handleResponse(wrapper);
         } catch (Exception e) {
             e.printStackTrace();
@@ -307,7 +362,9 @@ public class NettyHttp2Client implements IHttpClient {
             LOG.error("Unexpected response.");
             wrapper.setErrorObject();
         }
+    }
 
-
+    public interface BaseCallback {
+        public void onSucceed(ResponseWrapper wrapper);
     }
 }

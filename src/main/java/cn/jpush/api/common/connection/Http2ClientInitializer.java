@@ -68,7 +68,8 @@ public class Http2ClientInitializer extends ChannelInitializer<SocketChannel> {
         }
     }
 
-    public HttpResponseHandler responseHandler() {
+    public HttpResponseHandler responseHandler(NettyHttp2Client.BaseCallback callback) {
+        responseHandler.setCallback(callback);
         return responseHandler;
     }
 
