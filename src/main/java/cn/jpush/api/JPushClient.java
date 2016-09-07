@@ -3,17 +3,17 @@ package cn.jpush.api;
 import java.util.Map;
 import java.util.Set;
 
+import cn.jpush.api.common.ClientConfig;
+import cn.jpush.api.common.TimeUnit;
+import cn.jpush.api.common.Week;
+import cn.jpush.api.common.connection.HttpProxy;
+import cn.jpush.api.common.resp.APIConnectionException;
+import cn.jpush.api.common.resp.APIRequestException;
+import cn.jpush.api.common.resp.BooleanResult;
+import cn.jpush.api.common.resp.DefaultResult;
+import cn.jpush.api.common.utils.Preconditions;
 import com.google.gson.JsonObject;
 
-import cn.jiguang.commom.ClientConfig;
-import cn.jiguang.commom.TimeUnit;
-import cn.jiguang.commom.Week;
-import cn.jiguang.commom.utils.Preconditions;
-import cn.jiguang.common.connection.HttpProxy;
-import cn.jiguang.common.resp.APIConnectionException;
-import cn.jiguang.common.resp.APIRequestException;
-import cn.jiguang.common.resp.BooleanResult;
-import cn.jiguang.common.resp.DefaultResult;
 import cn.jpush.api.device.AliasDeviceListResult;
 import cn.jpush.api.device.DeviceClient;
 import cn.jpush.api.device.OnlineStatus;
@@ -1139,7 +1139,6 @@ public class JPushClient {
     }
 
     /**
-     * Update a schedule by the id.
      * @param scheduleId The schedule id to update.
      * @param payload The new schedule payload.
      * @return The new schedule information.

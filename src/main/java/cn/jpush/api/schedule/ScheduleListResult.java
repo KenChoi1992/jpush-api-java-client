@@ -3,11 +3,11 @@ package cn.jpush.api.schedule;
 
 import java.util.List;
 
+import cn.jpush.api.common.resp.BaseResult;
 import com.google.gson.annotations.Expose;
 
-import cn.jiguang.common.resp.BaseResult;
 
-public class ScheduleListResult extends BaseResult{
+public class ScheduleListResult extends BaseResult {
 
     private static final long serialVersionUID = 86248096939746151L;
     @Expose int total_count;

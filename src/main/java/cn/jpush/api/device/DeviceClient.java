@@ -1,27 +1,22 @@
 package cn.jpush.api.device;
 
-import java.lang.reflect.Type;
-import java.util.Map;
-import java.util.Set;
-
+import cn.jpush.api.common.ClientConfig;
+import cn.jpush.api.common.ServiceHelper;
+import cn.jpush.api.common.connection.HttpProxy;
+import cn.jpush.api.common.connection.NativeHttpClient;
+import cn.jpush.api.common.resp.*;
+import cn.jpush.api.common.utils.Preconditions;
+import cn.jpush.api.common.utils.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.reflect.TypeToken;
 
-import cn.jiguang.commom.ClientConfig;
-import cn.jiguang.commom.ServiceHelper;
-import cn.jiguang.commom.utils.Preconditions;
-import cn.jiguang.commom.utils.StringUtils;
-import cn.jiguang.common.connection.HttpProxy;
-import cn.jiguang.common.connection.NativeHttpClient;
-import cn.jiguang.common.resp.APIConnectionException;
-import cn.jiguang.common.resp.APIRequestException;
-import cn.jiguang.common.resp.BaseResult;
-import cn.jiguang.common.resp.BooleanResult;
-import cn.jiguang.common.resp.DefaultResult;
-import cn.jiguang.common.resp.ResponseWrapper;
+import java.lang.reflect.Type;
+import java.util.Map;
+import java.util.Set;
+
 
 public class DeviceClient {
 
