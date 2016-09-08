@@ -4,6 +4,7 @@ import cn.jpush.api.common.ClientConfig;
 import cn.jpush.api.common.ServiceHelper;
 import cn.jpush.api.common.connection.HttpProxy;
 import cn.jpush.api.common.connection.NativeHttpClient;
+import cn.jpush.api.common.connection.NettyHttp2Client;
 import cn.jpush.api.common.resp.APIConnectionException;
 import cn.jpush.api.common.resp.APIRequestException;
 import cn.jpush.api.common.resp.ResponseWrapper;
@@ -17,7 +18,7 @@ import cn.jpush.api.schedule.model.SchedulePayload;
 public class ScheduleClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(ScheduleClient.class);
-    private final NativeHttpClient _httpClient;
+    private final NettyHttp2Client _httpClient;
 
     private String hostName;
     private String schedulePath;
@@ -64,7 +65,7 @@ public class ScheduleClient {
         timeToLive = (Long) conf.get(ClientConfig.TIME_TO_LIVE);
 
         String authCode = ServiceHelper.getBasicAuthorization(appKey, masterSecret);
-        this._httpClient = new NativeHttpClient(authCode, proxy, conf);
+        this._httpClient = new NettyHttp2Client(authCode, proxy, conf, hostName);
     }
 
     /**
@@ -82,7 +83,7 @@ public class ScheduleClient {
         timeToLive = (Long) conf.get(ClientConfig.TIME_TO_LIVE);
 
         String authCode = ServiceHelper.getBasicAuthorization(appKey, masterSecret);
-        this._httpClient = new NativeHttpClient(authCode, proxy, conf);
+        this._httpClient = new NettyHttp2Client(authCode, proxy, conf, hostName);
     }
 
     public ScheduleResult createSchedule(SchedulePayload payload) throws APIConnectionException, APIRequestException {

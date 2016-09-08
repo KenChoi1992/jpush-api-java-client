@@ -151,6 +151,10 @@ public class NettyHttp2Client implements IHttpClient {
         return this;
     }
 
+    /**
+     * execute request queue
+     * @param callback return response if success
+     */
     public void execute(BaseCallback callback) {
         if (_requestQueue.size() != 0) {
             if (!_channel.isOpen()) {
@@ -173,7 +177,14 @@ public class NettyHttp2Client implements IHttpClient {
         }
     }
 
-    public void initNettyHttp2Client(String url, RequestMethod method, String content) throws Exception {
+    /**
+     * do request
+     * @param url path of url
+     * @param method HttpMethod
+     * @param content Request content
+     * @throws Exception
+     */
+    public void doRequest(String url, HttpMethod method, String content) throws Exception {
         if (!_channel.isOpen()) {
             _channel = b.connect().syncUninterruptibly().channel();
         }
@@ -187,57 +198,21 @@ public class NettyHttp2Client implements IHttpClient {
         System.err.println("Sending request(s)...");
         int streamId = 3;
         FullHttpRequest request;
-        if (method == RequestMethod.GET) {
-            // Create a simple GET request.
-            if (null != content) {
-                request = new DefaultFullHttpRequest(HTTP_1_1, GET, url,
-                        Unpooled.copiedBuffer(content.getBytes(CharsetUtil.UTF_8)));
-            } else {
-                request = new DefaultFullHttpRequest(HTTP_1_1, GET, url);
-            }
-            request.headers().add(HttpHeaderNames.HOST, hostName);
-            request.headers().add(HttpHeaderNames.AUTHORIZATION, _authCode);
-            request.headers().add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), scheme.name());
-            request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
-            request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.DEFLATE);
-            responseHandler.put(streamId, _channel.writeAndFlush(request), _channel.newPromise());
-            streamId += 2;
-        } else if (method == RequestMethod.POST) {
-            // Create a simple POST request with a body.
-            request = new DefaultFullHttpRequest(HTTP_1_1, POST, url,
+        if (null != content) {
+            request = new DefaultFullHttpRequest(HTTP_1_1, method, url,
                     Unpooled.copiedBuffer(content.getBytes(CharsetUtil.UTF_8)));
-            request.headers().add(HttpHeaderNames.HOST, hostName);
-            request.headers().add(HttpHeaderNames.AUTHORIZATION, _authCode);
-            request.headers().add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), scheme.name());
-            request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
-            request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.DEFLATE);
-            responseHandler.put(streamId, _channel.writeAndFlush(request), _channel.newPromise());
-            streamId += 2;
-        } else if (method == RequestMethod.PUT) {
-            request = new DefaultFullHttpRequest(HTTP_1_1, PUT, url,
-                    Unpooled.copiedBuffer(content.getBytes(CharsetUtil.UTF_8)));
-            request.headers().add(HttpHeaderNames.HOST, hostName);
-            request.headers().add(HttpHeaderNames.AUTHORIZATION, _authCode);
-            request.headers().add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), scheme.name());
-            request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
-            request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.DEFLATE);
-            responseHandler.put(streamId, _channel.writeAndFlush(request), _channel.newPromise());
-            streamId += 2;
-        } else if (method == RequestMethod.DELETE) {
-            if (null != content) {
-                request = new DefaultFullHttpRequest(HTTP_1_1, DELETE, url,
-                        Unpooled.copiedBuffer(content.getBytes(CharsetUtil.UTF_8)));
-            } else {
-                request = new DefaultFullHttpRequest(HTTP_1_1, DELETE, url);
-            }
-            request.headers().add(HttpHeaderNames.HOST, hostName);
-            request.headers().add(HttpHeaderNames.AUTHORIZATION, _authCode);
-            request.headers().add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), scheme.name());
-            request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
-            request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.DEFLATE);
-            responseHandler.put(streamId, _channel.writeAndFlush(request), _channel.newPromise());
-            streamId += 2;
+            byte[] data = content.getBytes(CHARSET);
+            request.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(data.length));
+        } else {
+            request = new DefaultFullHttpRequest(HTTP_1_1, method, url);
         }
+        request.headers().add(HttpHeaderNames.HOST, hostName);
+        request.headers().add(HttpHeaderNames.AUTHORIZATION, _authCode);
+        request.headers().add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), scheme.name());
+        request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
+        request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.DEFLATE);
+        responseHandler.put(streamId, _channel.writeAndFlush(request), _channel.newPromise());
+        streamId += 2;
         responseHandler.awaitResponses(15, TimeUnit.SECONDS);
         System.out.println("Finished HTTP/2 request(s)");
 
@@ -262,7 +237,7 @@ public class NettyHttp2Client implements IHttpClient {
         String path = url.substring(_host.length() + 8);
         ResponseWrapper wrapper = new ResponseWrapper();
         try {
-            initNettyHttp2Client(path, RequestMethod.GET, content);
+            doRequest(path, HttpMethod.GET, content);
             handleResponse(wrapper);
         } catch (Exception e) {
             e.printStackTrace();
@@ -274,7 +249,7 @@ public class NettyHttp2Client implements IHttpClient {
     public ResponseWrapper sendPut(String url, String content) throws APIConnectionException, APIRequestException {
         ResponseWrapper wrapper = new ResponseWrapper();
         try {
-            initNettyHttp2Client(url, RequestMethod.PUT, content);
+            doRequest(url, HttpMethod.PUT, content);
             handleResponse(wrapper);
         } catch (Exception e) {
             e.printStackTrace();
@@ -287,7 +262,7 @@ public class NettyHttp2Client implements IHttpClient {
         String path = url.substring(_host.length() + 8);
         ResponseWrapper wrapper = new ResponseWrapper();
         try {
-            initNettyHttp2Client(path, RequestMethod.POST, content);
+            doRequest(path, HttpMethod.POST, content);
             handleResponse(wrapper);
         } catch (Exception e) {
             e.printStackTrace();
@@ -304,7 +279,7 @@ public class NettyHttp2Client implements IHttpClient {
         String path = url.substring(_host.length() + 8);
         ResponseWrapper wrapper = new ResponseWrapper();
         try {
-            initNettyHttp2Client(path, RequestMethod.DELETE, content);
+            doRequest(path, HttpMethod.DELETE, content);
             handleResponse(wrapper);
         } catch (Exception e) {
             e.printStackTrace();

@@ -6,12 +6,16 @@ import static org.junit.Assert.fail;
 import cn.jpush.api.JPushClient;
 import cn.jpush.api.common.ClientConfig;
 import cn.jpush.api.common.ServiceHelper;
+import cn.jpush.api.common.TimeUnit;
+import cn.jpush.api.common.Week;
 import cn.jpush.api.common.connection.Http2Request;
 import cn.jpush.api.common.connection.HttpProxy;
 import cn.jpush.api.common.connection.NettyHttp2Client;
 import cn.jpush.api.common.resp.*;
 import cn.jpush.api.device.DeviceClient;
 import cn.jpush.api.device.TagAliasResult;
+import cn.jpush.api.schedule.model.SchedulePayload;
+import cn.jpush.api.schedule.model.TriggerPayload;
 import io.netty.handler.codec.http.HttpMethod;
 import org.junit.Test;
 
@@ -142,6 +146,32 @@ public class PushClientTest extends BaseTest {
             LOG.error("Error response from JPush server. Should review and fix it. ", e);
             LOG.info("HTTP Status: " + e.getStatus());
             LOG.info("Error Code: " + e.getErrorCode());
+        }
+    }
+
+    @Test
+    public void testUpdateSchedule() {
+        String scheduleId = "95bbd066-3a88-11e5-8e62-0021f652c102";
+        JPushClient jpushClient = new JPushClient(MASTER_SECRET, APP_KEY);
+        String[] points = {Week.MON.name(), Week.FRI.name()};
+        TriggerPayload trigger = TriggerPayload.newBuilder()
+                .setPeriodTime("2015-08-01 12:10:00", "2015-08-30 12:12:12", "15:00:00")
+                .setTimeFrequency(TimeUnit.WEEK, 2, points)
+                .buildPeriodical();
+        SchedulePayload payload = SchedulePayload.newBuilder()
+                .setName("test_update_schedule")
+                .setEnabled(false)
+                .setTrigger(trigger)
+                .build();
+        try {
+            jpushClient.updateSchedule(scheduleId, payload);
+        } catch (APIConnectionException e) {
+            LOG.error("Connection error. Should retry later. ", e);
+        } catch (APIRequestException e) {
+            LOG.error("Error response from JPush server. Should review and fix it. ", e);
+            LOG.info("HTTP Status: " + e.getStatus());
+            LOG.info("Error Code: " + e.getErrorCode());
+            LOG.info("Error Message: " + e.getErrorMessage());
         }
     }
 
