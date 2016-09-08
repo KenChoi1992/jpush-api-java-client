@@ -58,7 +58,7 @@ public class PushClientTest extends BaseTest {
         ClientConfig config = ClientConfig.getInstance();
         String host = (String) config.get(ClientConfig.PUSH_HOST_NAME);
         NettyHttp2Client client = new NettyHttp2Client(ServiceHelper.getBasicAuthorization(APP_KEY, MASTER_SECRET),
-                null, config, host.substring(8));
+                null, config, host);
         Queue<Http2Request> queue = new LinkedList<Http2Request>();
         String url = (String) config.get(ClientConfig.PUSH_PATH);
         PushPayload payload = buildPushObject_all_all_alert();

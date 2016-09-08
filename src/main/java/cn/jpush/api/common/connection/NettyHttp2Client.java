@@ -161,8 +161,8 @@ public class NettyHttp2Client implements IHttpClient {
             for (FullHttpRequest request : _requestQueue) {
                 responseHandler.put(streamId, _channel.writeAndFlush(request), _channel.newPromise());
                 streamId += 2;
-                _requestQueue.poll();
             }
+            _requestQueue.clear();
             responseHandler.awaitResponses(15, TimeUnit.SECONDS);
             System.out.println("Finished HTTP/2 request(s)");
 
