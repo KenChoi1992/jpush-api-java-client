@@ -152,7 +152,7 @@ public class NettyHttp2Client implements IHttpClient {
 
     public void execute(BaseCallback callback) {
         if (_requestQueue.size() != 0) {
-            if (null == _channel) {
+            if (!_channel.isOpen()) {
                 _channel = b.connect().syncUninterruptibly().channel();
                 mChannelId = _channel.id().asShortText();
             }
@@ -164,7 +164,8 @@ public class NettyHttp2Client implements IHttpClient {
             }
             _requestQueue.clear();
             responseHandler.awaitResponses(15, TimeUnit.SECONDS);
-            System.out.println("Finished HTTP/2 request(s)");
+            long after = System.currentTimeMillis();
+            System.out.println("Finished HTTP/2 request(s) " + after);
 
             // Wait until the connection is closed.
             _channel.close().syncUninterruptibly();
@@ -172,6 +173,9 @@ public class NettyHttp2Client implements IHttpClient {
     }
 
     public void initNettyHttp2Client(String url, RequestMethod method, String content) throws Exception {
+        if (!_channel.isOpen()) {
+            _channel = b.connect().syncUninterruptibly().channel();
+        }
         // Wait for the HTTP/2 upgrade to occur.
         Http2SettingsHandler http2SettingsHandler = initializer.settingsHandler();
         http2SettingsHandler.awaitSettings(5, TimeUnit.SECONDS);

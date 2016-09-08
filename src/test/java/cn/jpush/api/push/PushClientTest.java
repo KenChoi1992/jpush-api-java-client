@@ -37,20 +37,25 @@ public class PushClientTest extends BaseTest {
         // For push, all you need do is to build PushPayload object.
         PushPayload payload = buildPushObject_all_all_alert();
 
-        try {
-            PushResult result = jpushClient.sendPush(payload);
-            LOG.info("Got result - " + result);
+        long before = System.currentTimeMillis();
+        for (int i=0; i<100; i++) {
+            try {
+                PushResult result = jpushClient.sendPush(payload);
+                LOG.info("Got result - " + result);
 
-        } catch (APIConnectionException e) {
-            LOG.error("Connection error. Should retry later. ", e);
+            } catch (APIConnectionException e) {
+                LOG.error("Connection error. Should retry later. ", e);
 
-        } catch (APIRequestException e) {
-            LOG.error("Error response from JPush server. Should review and fix it. ", e);
-            LOG.info("HTTP Status: " + e.getStatus());
-            LOG.info("Error Code: " + e.getErrorCode());
-            LOG.info("Error Message: " + e.getErrorMessage());
-            LOG.info("Msg ID: " + e.getMsgId());
+            } catch (APIRequestException e) {
+                LOG.error("Error response from JPush server. Should review and fix it. ", e);
+                LOG.info("HTTP Status: " + e.getStatus());
+                LOG.info("Error Code: " + e.getErrorCode());
+                LOG.info("Error Message: " + e.getErrorMessage());
+                LOG.info("Msg ID: " + e.getMsgId());
+            }
         }
+        long after = System.currentTimeMillis();
+        LOG.info("Cost: " + (after - before));
     }
 
     @Test
@@ -62,10 +67,12 @@ public class PushClientTest extends BaseTest {
         Queue<Http2Request> queue = new LinkedList<Http2Request>();
         String url = (String) config.get(ClientConfig.PUSH_PATH);
         PushPayload payload = buildPushObject_all_all_alert();
-        for (int i=0; i<10; i++) {
+        for (int i=0; i<100; i++) {
             queue.offer(new Http2Request(url, payload.toString()));
         }
         try {
+            long before = System.currentTimeMillis();
+            LOG.info("before: " + before);
             client.setRequestQueue(HttpMethod.POST, queue).execute(new NettyHttp2Client.BaseCallback() {
                 @Override
                 public void onSucceed(ResponseWrapper wrapper) {
