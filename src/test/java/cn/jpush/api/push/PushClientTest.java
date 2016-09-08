@@ -9,10 +9,9 @@ import cn.jpush.api.common.ServiceHelper;
 import cn.jpush.api.common.connection.Http2Request;
 import cn.jpush.api.common.connection.HttpProxy;
 import cn.jpush.api.common.connection.NettyHttp2Client;
-import cn.jpush.api.common.resp.APIConnectionException;
-import cn.jpush.api.common.resp.APIRequestException;
-import cn.jpush.api.common.resp.BaseResult;
-import cn.jpush.api.common.resp.ResponseWrapper;
+import cn.jpush.api.common.resp.*;
+import cn.jpush.api.device.DeviceClient;
+import cn.jpush.api.device.TagAliasResult;
 import io.netty.handler.codec.http.HttpMethod;
 import org.junit.Test;
 
@@ -30,6 +29,28 @@ public class PushClientTest extends BaseTest {
 
     @Test
     public void testSendPush() {
+        JPushClient jpushClient = new JPushClient(MASTER_SECRET, APP_KEY, 3);
+
+        // For push, all you need do is to build PushPayload object.
+        PushPayload payload = buildPushObject_all_all_alert();
+        try {
+            PushResult result = jpushClient.sendPush(payload);
+            LOG.info("Got result - " + result);
+
+        } catch (APIConnectionException e) {
+            LOG.error("Connection error. Should retry later. ", e);
+
+        } catch (APIRequestException e) {
+            LOG.error("Error response from JPush server. Should review and fix it. ", e);
+            LOG.info("HTTP Status: " + e.getStatus());
+            LOG.info("Error Code: " + e.getErrorCode());
+            LOG.info("Error Message: " + e.getErrorMessage());
+            LOG.info("Msg ID: " + e.getMsgId());
+        }
+    }
+
+    @Test
+    public void testSendPushes() {
         // HttpProxy proxy = new HttpProxy("localhost", 3128);
         // Can use this https proxy: https://github.com/Exa-Networks/exaproxy
         JPushClient jpushClient = new JPushClient(MASTER_SECRET, APP_KEY, 3);
@@ -59,7 +80,7 @@ public class PushClientTest extends BaseTest {
     }
 
     @Test
-    public void testSendPushes() {
+    public void testSendPushesReuse() {
         ClientConfig config = ClientConfig.getInstance();
         String host = (String) config.get(ClientConfig.PUSH_HOST_NAME);
         NettyHttp2Client client = new NettyHttp2Client(ServiceHelper.getBasicAuthorization(APP_KEY, MASTER_SECRET),
@@ -88,6 +109,42 @@ public class PushClientTest extends BaseTest {
     public static PushPayload buildPushObject_all_all_alert() {
         return PushPayload.alertAll(ALERT);
     }
+
+    @Test
+    public void testGetDeviceTagAlias() {
+        try {
+            JPushClient jpushClient = new JPushClient(MASTER_SECRET, APP_KEY);
+            TagAliasResult result = jpushClient.getDeviceTagAlias(REGISTRATION_ID1);
+
+            LOG.info(result.alias);
+            LOG.info(result.tags.toString());
+
+        } catch (APIConnectionException e) {
+            LOG.error("Connection error. Should retry later. ", e);
+
+        } catch (APIRequestException e) {
+            LOG.error("Error response from JPush server. Should review and fix it. ", e);
+            LOG.info("HTTP Status: " + e.getStatus());
+            LOG.info("Error Code: " + e.getErrorCode());
+            LOG.info("Error Message: " + e.getErrorMessage());
+        }
+    }
+
+    @Test
+    public void testDeleteTag() {
+        DeviceClient client = new DeviceClient(MASTER_SECRET, APP_KEY);
+        try {
+            DefaultResult result = client.deleteTag("test", "android");
+            LOG.info("Got result " + result);
+        } catch (APIConnectionException e) {
+            LOG.error("Connection error. Should retry later. ", e);
+        } catch (APIRequestException e) {
+            LOG.error("Error response from JPush server. Should review and fix it. ", e);
+            LOG.info("HTTP Status: " + e.getStatus());
+            LOG.info("Error Code: " + e.getErrorCode());
+        }
+    }
+
 
     @Test(expected = IllegalArgumentException.class)
     public void test_invalid_json() {

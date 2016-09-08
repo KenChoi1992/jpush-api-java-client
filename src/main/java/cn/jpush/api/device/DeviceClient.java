@@ -4,6 +4,7 @@ import cn.jpush.api.common.ClientConfig;
 import cn.jpush.api.common.ServiceHelper;
 import cn.jpush.api.common.connection.HttpProxy;
 import cn.jpush.api.common.connection.NativeHttpClient;
+import cn.jpush.api.common.connection.NettyHttp2Client;
 import cn.jpush.api.common.resp.*;
 import cn.jpush.api.common.utils.Preconditions;
 import cn.jpush.api.common.utils.StringUtils;
@@ -20,7 +21,7 @@ import java.util.Set;
 
 public class DeviceClient {
 
-    private final NativeHttpClient _httpClient;
+    private final NettyHttp2Client _httpClient;
     private String hostName;
     private String devicesPath;
     private String tagsPath;
@@ -62,7 +63,7 @@ public class DeviceClient {
         aliasesPath = (String) conf.get(ClientConfig.ALIASES_PATH);
 
         String authCode = ServiceHelper.getBasicAuthorization(appKey, masterSecret);
-        _httpClient = new NativeHttpClient(authCode, proxy, conf);
+        _httpClient = new NettyHttp2Client(authCode, proxy, conf, hostName);
 
     }
 
@@ -83,7 +84,7 @@ public class DeviceClient {
         aliasesPath = (String) conf.get(ClientConfig.ALIASES_PATH);
 
         String authCode = ServiceHelper.getBasicAuthorization(appKey, masterSecret);
-        _httpClient = new NativeHttpClient(authCode, proxy, conf);
+        _httpClient = new NettyHttp2Client(authCode, proxy, conf, hostName);
     }
 
     // -------------- device 

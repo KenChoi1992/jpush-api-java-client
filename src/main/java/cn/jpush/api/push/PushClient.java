@@ -164,8 +164,7 @@ public class PushClient {
             pushPayload.resetOptionsTimeToLive(_timeToLive);
         }
 
-//        ResponseWrapper response = _httpClient.sendPost(_baseUrl + _pushPath, pushPayload.toString());
-        ResponseWrapper response = _httpClient.sendPost(_baseUrl, _pushPath, pushPayload.toString());
+        ResponseWrapper response = _httpClient.sendPost(_baseUrl + _pushPath, pushPayload.toString());
         return BaseResult.fromResponse(response, PushResult.class);
     }
     

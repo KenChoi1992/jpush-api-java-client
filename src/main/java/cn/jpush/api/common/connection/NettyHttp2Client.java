@@ -61,6 +61,7 @@ public class NettyHttp2Client implements IHttpClient {
         _connectionTimeout = config.getConnectionTimeout();
         _readTimeout = config.getReadTimeout();
         _sslVer = config.getSSLVersion();
+        //域名要去掉 https://
         _host = host.substring(8);
 
         _authCode = authCode;
@@ -188,16 +189,17 @@ public class NettyHttp2Client implements IHttpClient {
         FullHttpRequest request;
         if (method == RequestMethod.GET) {
             // Create a simple GET request.
-            request = new DefaultFullHttpRequest(HTTP_1_1, GET, url);
+            if (null != content) {
+                request = new DefaultFullHttpRequest(HTTP_1_1, GET, url,
+                        Unpooled.copiedBuffer(content.getBytes(CharsetUtil.UTF_8)));
+            } else {
+                request = new DefaultFullHttpRequest(HTTP_1_1, GET, url);
+            }
             request.headers().add(HttpHeaderNames.HOST, hostName);
             request.headers().add(HttpHeaderNames.AUTHORIZATION, _authCode);
             request.headers().add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), scheme.name());
             request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.GZIP);
             request.headers().add(HttpHeaderNames.ACCEPT_ENCODING, HttpHeaderValues.DEFLATE);
-            if (null != content) {
-                byte[] data = content.getBytes(CHARSET);
-                request.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(data.length));
-            }
             responseHandler.put(streamId, _channel.writeAndFlush(request), _channel.newPromise());
             streamId += 2;
         } else if (method == RequestMethod.POST) {
@@ -223,7 +225,7 @@ public class NettyHttp2Client implements IHttpClient {
             streamId += 2;
         } else if (method == RequestMethod.DELETE) {
             if (null != content) {
-                 request = new DefaultFullHttpRequest(HTTP_1_1, DELETE, url,
+                request = new DefaultFullHttpRequest(HTTP_1_1, DELETE, url,
                         Unpooled.copiedBuffer(content.getBytes(CharsetUtil.UTF_8)));
             } else {
                 request = new DefaultFullHttpRequest(HTTP_1_1, DELETE, url);
@@ -256,26 +258,20 @@ public class NettyHttp2Client implements IHttpClient {
     }
 
     public ResponseWrapper sendGet(String url, String content) throws APIConnectionException, APIRequestException {
-        return null;
-    }
-
-    @Override
-    public ResponseWrapper sendDelete(String url) throws APIConnectionException, APIRequestException {
-        return null;
-    }
-
-    @Override
-    public ResponseWrapper sendPost(String url, String content) throws APIConnectionException, APIRequestException {
-        return null;
+        //截取url中域名后面的路径，+8是因为 _host 中截取了 https://
+        String path = url.substring(_host.length() + 8);
+        ResponseWrapper wrapper = new ResponseWrapper();
+        try {
+            initNettyHttp2Client(path, RequestMethod.GET, content);
+            handleResponse(wrapper);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return wrapper;
     }
 
     @Override
     public ResponseWrapper sendPut(String url, String content) throws APIConnectionException, APIRequestException {
-        return null;
-    }
-
-    @Override
-    public ResponseWrapper sendPut(String host, String url, String content) throws APIConnectionException, APIRequestException {
         ResponseWrapper wrapper = new ResponseWrapper();
         try {
             initNettyHttp2Client(url, RequestMethod.PUT, content);
@@ -287,10 +283,11 @@ public class NettyHttp2Client implements IHttpClient {
     }
 
     @Override
-    public ResponseWrapper sendPost(String host, String url, String content) throws APIConnectionException, APIRequestException {
+    public ResponseWrapper sendPost(String url, String content) throws APIConnectionException, APIRequestException {
+        String path = url.substring(_host.length() + 8);
         ResponseWrapper wrapper = new ResponseWrapper();
         try {
-            initNettyHttp2Client(url, RequestMethod.POST, content);
+            initNettyHttp2Client(path, RequestMethod.POST, content);
             handleResponse(wrapper);
         } catch (Exception e) {
             e.printStackTrace();
@@ -299,10 +296,15 @@ public class NettyHttp2Client implements IHttpClient {
     }
 
     @Override
-    public ResponseWrapper sendDelete(String host, String url, String content) throws APIConnectionException, APIRequestException {
+    public ResponseWrapper sendDelete(String url) throws APIConnectionException, APIRequestException {
+        return sendDelete(url, null);
+    }
+
+    public ResponseWrapper sendDelete(String url, String content) throws APIConnectionException, APIRequestException {
+        String path = url.substring(_host.length() + 8);
         ResponseWrapper wrapper = new ResponseWrapper();
         try {
-            initNettyHttp2Client(url, RequestMethod.DELETE, content);
+            initNettyHttp2Client(path, RequestMethod.DELETE, content);
             handleResponse(wrapper);
         } catch (Exception e) {
             e.printStackTrace();
